@@ -13,197 +13,271 @@ namespace LINQ_PART2
         static void Main(string[] args)
         {
             /*Профессия C#-разработчик Язык C# Модуль 15.Основы LINQ.Часть 2 
-            4/8   15.3. Группировка
-            ,
-            Задачи группировки тоже встречаются очень часто. Рассмотрим наш пример с автомобилями, допустим, нам нужно сгруппировать их по странам-производителям.
+            5/8   15.4. Соединение коллекций
+
+            Соединение в LINQ позволяет объединить разные наборы объектов в коллекциях по общим свойствам, по аналогии с тем, как мы объединяем разные таблицы 
+            по общему ключу в SQL (будет изучаться в последующих модулях), используя операторы Join.
 
             *************************
-            GroupBy()
+            Join()
             *************************
-            
+
+            Как правило, эту операцию можно применять к двум наборам коллекций, имеющим общий критерий.
+
+            Создадим следующие модели данных: 
+
+            В данном случае  свойство Manufacturer у Car и Name у класса Manufacturer будут общим ключом, по которому можно соединить эти две сущности.
+
+            Создадим набор данных:
+
+            // Список моделей
             var cars = new List<Car>()
             {
-                new Car("Suzuki", "JP"),
-                new Car("Toyota", "JP"),
-                new Car("Opel", "DE"),
-                new Car("Kamaz", "RUS"),
-                new Car("Lada", "RUS"),
-                new Car("Honda", "JP"),
+                new Car() { Model  = "SX4", Manufacturer = "Suzuki"},
+                new Car() { Model  = "Grand Vitara", Manufacturer = "Suzuki"},
+                new Car() { Model  = "Jimny", Manufacturer = "Suzuki"},
+                new Car() { Model  = "Land Cruiser Prado", Manufacturer = "Toyota"},
+                new Car() { Model  = "Camry", Manufacturer = "Toyota"},
+                new Car() { Model  = "Polo", Manufacturer = "Volkswagen"},
+                new Car() { Model  = "Passat", Manufacturer = "Volkswagen"},
             };
 
-            //Сгруппируем по стране-производителю(используя ключевое слово groupby):
-            var carsByCountry = from car in cars
-                                group car by car.CountryCode;
-
-            // Пробежимся по группам
-            foreach (var grouping in carsByCountry)
+            // Список автопроизводителей
+            var manufacturers = new List<Manufacturer>()
             {
-                Console.WriteLine(grouping.Key + ":");
+                 new Manufacturer() { Country = "Japan", Name = "Suzuki" },
+                 new Manufacturer() { Country = "Japan", Name = "Toyota" },
+                 new Manufacturer() { Country = "Germany", Name = "Volkswagen" },
+            };
 
-                // внутри каждой группы пробежимся по элементам
-                foreach (var car in grouping)
-                    Console.WriteLine(car.Manufacturer);
+            Соединим и сопоставим коллекции: 
+
+            var result = from car in cars // выберем машины
+                         join m in manufacturers on car.Manufacturer equals m.Name // соединим по общему ключу (имя производителя) с производителями
+                         select new //   спроецируем выборку в новую анонимную сущность
+                         {
+                             Name = car.Model,
+                             Manufacturer = m.Name,
+                             Country = m.Country
+                         };
+
+            // выведем результаты
+            foreach (var item in result)
+                Console.WriteLine($"{item.Name} - {item.Manufacturer} ({item.Country})");
+
+            В результате получим модели автомобилей с информацией о марке и стране-изготовителе:
+
+            SX4 - Suzuki(Japan)
+            Grand Vitara -Suzuki(Japan)
+            Jimny - Suzuki(Japan)
+            Land Cruiser Prado - Toyota(Japan)
+            Camry - Toyota(Japan)
+            Polo - Volkswagen(Germany)
+            Passat - Volkswagen(Germany)
+
+            Метод расширения Join(), как обычно, предоставляет ещё один вариант сделать то же самое:
+
+            var result2 = cars.Join(manufacturers, // передаем в качестве параметра вторую коллекцию
+                car => car.Manufacturer, // указываем общее свойство для первой коллекции
+                m => m.Name, // указываем общее свойство для второй коллекции
+                 (car, m) =>
+                    new // проекция в новый тип
+                    {
+                        Name = car.Model,
+                        Manufacturer = m.Name,
+                        Country = m.Country
+                 });
+
+            *************************
+            GroupJoin()
+            *************************
+
+            Позволяет одновременно с тем, что мы делали выше (соединение последовательностей), произвести группировку.
+
+            // Выборка + группировка
+            var result2 = manufacturers.GroupJoin(
+               cars, // первый набор данных
+               m => m.Name, // общее свойство второго набора
+               car => car.Manufacturer, // общее свойство первого набора
+               (m, crs) => new  // результат выборки
+               {
+                   Name = m.Name,
+                   Country = m.Country,
+                   Cars = crs.Select(c => c.Model)
+               });
+
+            // Вывод:
+            foreach (var team in result2)
+            {
+                Console.WriteLine(team.Name + ":");
+
+                foreach (string car in team.Cars)
+                    Console.WriteLine(car);
 
                 Console.WriteLine();
             }
 
-             //Вывод:
+            Результат: 
 
-            //JP:
-            //    Suzuki
-            //    Toyota
-            //Honda
+            Suzuki:
+                SX4
+                Grand Vitara
+                Jimny
 
-            //    DE:
-            //    Opel
+            Toyota:
+                Land Cruiser Prado
+                Camry
 
-            //RUS:
-            //    Kamaz
-            //    Lada
+            Volkswagen:
+                Polo
+                Passat
 
-            Результатом оператора group является выборка, которая состоит из групп. 
+            *************************
+            Zip()
+            *************************
 
-            Каждая группа представляет объект IGrouping<string, Car>, где string — тип ключа, а параметр Car — тип сгруппированных объектов.
-            Ключ каждой группы доступен через свойство Key.
+            Данный метод позволяет попарно соединять последовательности. 
 
-            Через метод расширения тот же результат достигается в одну строчку: 
+            При необходимости можно на ходу выполнить дополнительные операции:
 
-            // Группировка по стране - производителю ( через метод - расширение)
-            var carsByCountry = cars.GroupBy(car => car.CountryCode);
+            //  объявляем две коллекции
+            var letters = new string[] { "A", "B", "C", "D", "E" };
+            var numbers = new int[] { 1, 2, 3 };
 
-            При группировке мы можем использовать уже известную вам проекцию для создания объекта нового типа: 
+            // проводим "упаковку" элементов, сопоставляя попарно
+            var q = letters.Zip(numbers, (l, n) => l + n.ToString());
 
-            var carsByCountry = cars
-                .GroupBy(car => car.CountryCode) // группируем по стране-производителю
-                .Select(group => new
-                { //  создаем новую сущность анонимного типа
-                  Name = group.Key,
-                  Amount = group.Count()
-                });
+            // вывод
+            foreach (var s in q)
+                Console.WriteLine(s);
 
-            И даже осуществлять вложенные запросы, используя ключевое слово into.
+            Вывод: 
 
-            var carsByCountry2 = from car in cars
-                                 group car by car.CountryCode into grouping // выборка в локальную переменную для вложенного запроса
-                                 select new
-                                 {
-                                     Name = grouping.Key,
-                                     Count = grouping.Count(),
-                                     Cars = from p in grouping select p //  выполним подзапрос, чтобы заполнить список машин внутри нашего нового типа
-                                 };
-            // Выведем результат
-            foreach (var group in carsByCountry2)
-            {
-            // Название группы и количество элементов
-                 Console.WriteLine($"{group.Name} : {group.Count} авто");
-  
-                 foreach(Car car in group.Cars)
-                 Console.WriteLine(car.Manufacturer);
-  
-                Console.WriteLine();
-            }
-
-            Вывод:
-            JP : 3 авто
-            Suzuki
-            Toyota
-            Honda
-
-            DE : 1 авто
-            Opel
-
-            RUS : 2 авто
-            Kamaz
-            Lada
-
-            Аналогичный запрос с помощью метода расширения, как всегда, выглядит менее громоздким: 
-
-            var carsByCountry2 = cars
-                .GroupBy(car => car.CountryCode)
-                 .Select(g => new
-                 {
-                    Name = g.Key,
-                    Count = g.Count(),
-                    Cars = g.Select(c =>c)
-                });
+            A1
+            B2
+            C3
 
             */
+
         }
+        // Модель автомобиля
         public class Car
         {
+            public string Model { get; set; }
             public string Manufacturer { get; set; }
-            public string CountryCode { get; set; }
+        }
 
-            public Car(string manufacturer, string countryCode)
-            {
-                Manufacturer = manufacturer;
-                CountryCode = countryCode;
-            }
+        // Завод - изготовитель
+        public class Manufacturer
+        {
+            public string Name { get; set; }
+            public string Country { get; set; }
         }
     }    
 }
 
 /*
-Задание 15.3.1
+Задание 15.4.2
+Теперь сгруппируйте сотрудников по отделам, выведя на экран последовательно сначала название отдела, а затем список его сотрудников:
 
-Для чего служит ключевое слово into, и где его можно использовать?
-
-можно использовать в любом месте программы, служит для промежуточной выборки объектов в переменную
-можно использовать в методах расширения и выражениях LINQ, служит для промежуточной выборки значений запроса.
-для промежуточной выборки и подзапросов, используется только в LINQ-выражениях                                  X
-нигде в C# нельзя использовать, а вообще это что-то из SQL
-
-Задание 15.3.2
-Что мы получаем на выходе после отработки метода GroupBy()?
-
-коллекцию такого же типа, но со сгруппированными вместе элементами
-коллекцию групп — новых объектов, внутри которых, в свою очередь, лежат наши элементы
-метод GroupBy() ничего не возвращает, он только изменяет текущую коллекцию                  X
-нет верного ответа
-
-Ответ: мы получим объект типа IGrouping <TKey, TValue>, где ключом будет элемент, по которому группируем.
-
-
-Задание 15.3.3
-Дан список контактов:
-
-var phoneBook = new List<Contact>();
- 
-// добавляем контакты
-phoneBook.Add(new Contact("Игорь", 79990000001, "igor@example.com"));
-phoneBook.Add(new Contact("Сергей", 79990000010, "serge@example.com"));
-phoneBook.Add(new Contact("Анатолий", 79990000011, "anatoly@example.com"));
-phoneBook.Add(new Contact("Валерий", 79990000012, "valera@example.com"));
-phoneBook.Add(new Contact("Сергей", 799900000013, "serg@gmail.com"));
-phoneBook.Add(new Contact("Иннокентий", 799900000013, "innokentii@example.com"));
-Некоторые из них имеют реальный email-адрес, а некоторые — фейковый (те, которые в домене example).
-
-Нам нужно разбить их на две группы: фейковые и реальные, и вывести результат в консоль.
-
-Решите эту задачу с помощью группировки.
-
-//  в качестве критерия группировки передаем домен адреса электронной почты
-var grouped = phoneBook.GroupBy(c => c.Email.Split("@").Last());
- 
-// обрабатываем получившиеся группы
-foreach (var group in grouped)
+static void Main(string[] args)
 {
-   // если ключ содержит example, значит, это фейк
-   if (group.Key.Contains("example"))
+   var departments = new List<Department>()
    {
-       Console.WriteLine("Фейковые адреса: ");
- 
-       foreach (var contact in group)
-           Console.WriteLine(contact.Name + " " + contact.Email);
+       new Department() {Id = 1, Name = "Программирование"},
+       new Department() {Id = 2, Name = "Продажи"}
+   };
       
-   }
-   else
+   var employees = new List<Employee>()
    {
-       Console.WriteLine("Реальные адреса: ");
-       foreach (var contact in group)
-           Console.WriteLine(contact.Name + " " + contact.Email);
-   }
- 
-   Console.WriteLine();
+       new Employee() { DepartmentId = 1, Name = "Инна", Id = 1},
+       new Employee() { DepartmentId = 1, Name = "Андрей", Id = 2},
+       new Employee() { DepartmentId = 2, Name = "Виктор ", Id = 3},
+       new Employee() { DepartmentId = 3, Name = "Альберт ", Id = 4},
+   };
+  
+   // Ваш код здесь
 }
+
+var depsWithEmployees =  departments.GroupJoin(
+       employees, // первый набор данных
+       d => d.Id, // общее свойство второго набора
+       e  => e.DepartmentId, // общее свойство первого набора
+       (d, emps ) => new  // результат выборки
+       {
+           Name = d.Name,
+           Employees = emps.Select(e=>e.Name)
+       });
+  
+   // Пробегаемся по кажлому отделу
+   foreach (var dep in depsWithEmployees)
+   {
+       Console.WriteLine(dep.Name + ":");
+      
+       // Выводим сотрудников
+       foreach (string emp in dep.Employees)
+           Console.WriteLine(emp);
+ 
+       Console.WriteLine();
+   }
+
+
+Задание 15.4.3
+
+Что должны иметь две коллекции для того, чтобы из них можно было произвести совместную выборку?
+коллекции должны быть одного типа данных
+они должны иметь простой тип данных
+должны быть динамическими
+их типы данных должны иметь общее свойство  X
+
+Ответ: это является необходимым условием подобно тому, как общий ключ должен быть у таблиц SQL, между которыми выполняется join.
+
+
+Задание 15.4.4
+
+Позволяет ли метод Zip соединять два разнотипных набора данных?
+да, на выходе дает ArrayList
+да, но придется выполнить преобразование типов с помощью лямбда-выражения   X
+нет
+
+Ответ: Zip() на выходе дает список однотипных элементов.
+
+
+Задание 15.4.5
+Дан код:
+
+static void Main()
+{
+   var customers = new Customer[]
+   {
+       new Customer{ID = 5, Name = "Андрей"},
+       new Customer{ID = 6, Name = "Сергей"},
+       new Customer{ID = 7, Name = "Юлия"},
+       new Customer{ID = 8, Name = "Анна"}
+   };
+ 
+   var orders = new Order[]
+   {
+       new Order{ID = 6, Product = "Игру"},
+       new Order{ID = 7, Product = "Компьютер"},
+       new Order{ID = 3, Product = "Рубашку"} ,
+       new Order{ID = 5, Product = "Книгу"}
+   };
+ 
+   var query = from c in customers
+       join o in orders on c.ID equals o.ID
+       select new { c.Name, o.Product };
+   foreach (var group in query)
+       Console.WriteLine($"{group.Name} покупает {group.Product}");
+}
+
+Какой товар остался без покупателя?
+
+Введите слово  Рубашку
+
+Какой идентификатор должен быть у этого товара, чтобы он тоже попал в выборку?
+
+Введите цифру 8
+
+Измените код так, чтобы все товары получили покупателя.
 */
