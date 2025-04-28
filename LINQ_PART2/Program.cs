@@ -35,8 +35,13 @@ namespace LINQ_PART2
                  from student in classroom.Students
                  select student
             ).ToArray();
+
             //return classes
             //    .SelectMany(classroom => classroom.Students)
+            //    .ToArray();
+
+            //return classes
+            //    .SelectMany(c => c.Students)
             //    .ToArray();
         }
 
