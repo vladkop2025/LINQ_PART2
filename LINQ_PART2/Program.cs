@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using static LINQ_PART2.Program;
 
 namespace LINQ_PART2
 {
@@ -11,307 +13,197 @@ namespace LINQ_PART2
         static void Main(string[] args)
         {
             /*Профессия C#-разработчик Язык C# Модуль 15.Основы LINQ.Часть 2 
-            3/8   15.2. Агрегация
-
-            Мы уже знаем, как выполнять операции с несколькими множествами, находить общие элементы, и т.д. Но и для действий с элементами внутри одной 
-            коллекции LINQ предоставляет очень широкий набор инструментов.
-
-            Довольно часто нам бывает необходимо собрать какую-то аналитику по нашим данным. К примеру, посчитать средний, максимальный и минимальный  возраст 
-            студента курсов, пользователя сайта или мобильного приложения, покупателя товаров Интернет-магазина и так далее.
-
-            Для выполнения этих и похожих задач с данными в арсенале LINQ существуют операции агрегации. Примеры таких операций: выборка (получение определенного 
-            числа элементов), получение максимально и среднего значений в выборке, различные арифметические операции над значениями.
+            4/8   15.3. Группировка
+            ,
+            Задачи группировки тоже встречаются очень часто. Рассмотрим наш пример с автомобилями, допустим, нам нужно сгруппировать их по странам-производителям.
 
             *************************
-            Aggregate() 
-            *************************
- 
-            С помощью этого метода можно выполнить, к примеру, выполнение арифметического действия с элементами коллекции.
-
-            Console.OutputEncoding = Encoding.UTF8;
-
-            int[] numbers = { 1, 2, 3, 4, 5 };
-            int result = numbers.Aggregate((x, y) => x - y);
-
-            // вычислит 1-2-3-4-5 = -13
-            Console.WriteLine(result);
-
-            Ответ:  -13
-
-            Другие арифметические действия также возможны: 
-
-            int sum = numbers.Aggregate((x,y)=> x + y);
-
-            *************************
-            Count() 
+            GroupBy()
             *************************
             
-            Метод Count() можно использовать, когда вы хотите не просто посчитать элементы, а  узнать, сколько из них удовлетворяют определенным критериям.
-
-            // получим тех кто младше 25
-            var youngStudentsAmount =
-               (from student in students
-                where student.Age < 25
-                select student).Count();
-
-            // выведет 1
-            Console.WriteLine(youngStudentsAmount);
-
-            Но так, согласитесь, довольно громоздко и не очень удобно.
-
-            Есть другой способ — использовать перегрузку метода Count(), принимающую на вход лямбда-выражение:
-
-            // получим тех, кто младше 25
-            var youngStudentsAmount = students.Count(s => s.Age < 25);
-
-            // тоже выведет 1
-            Console.WriteLine(youngStudentsAmount);
-
-            Просто и изящно!
-
-            *************************
-            Sum()  
-            *************************
-            
-            Ещё один удобный метод, название которого говорит само за себя.
-
-            Пример использования будет очень похожим на предыдущий. 
-
-            Простое сложение:
-
-            
-            var simpleNumbers = new[] { 3, 5, 7 };
-
-            // Вернет 15
-            Console.WriteLine(simpleNumbers.Sum());
-
-            Сложный тип данных, сложение свойств:
-
-            // Список студентов
-            var students = new List<Student>
+            var cars = new List<Car>()
             {
-              new Student {Name="Андрей", Age=23 },
-              new Student {Name="Сергей", Age=27 },
-              new Student {Name="Дмитрий", Age=29 }
+                new Car("Suzuki", "JP"),
+                new Car("Toyota", "JP"),
+                new Car("Opel", "DE"),
+                new Car("Kamaz", "RUS"),
+                new Car("Lada", "RUS"),
+                new Car("Honda", "JP"),
             };
 
-            // сумма возрастов всех студентов
-            var totalAge = students.Sum(s => s.Age);
+            //Сгруппируем по стране-производителю(используя ключевое слово groupby):
+            var carsByCountry = from car in cars
+                                group car by car.CountryCode;
 
-            // Вернет 79
-            Console.WriteLine(totalAge);
-
-            *************************
-            Мax(), Min(), Average() 
-            *************************
-
-            Ещё один набор удобных методов, что они делают, понятно из названий. 
-
-            Перейдём сразу к примерам: 
-
-            var nums = new[] { 1, 7, 45, 23 };
-
-            int greatest = nums.Max();  // наибольшее - 45
-            int smallest = nums.Min();  // наименьшее - 1
-            double average = nums.Average();  // среднее - 19
-
-            Теперь посложнее: 
-
-            var students = new List<Student>
+            // Пробежимся по группам
+            foreach (var grouping in carsByCountry)
             {
-                 new Student {Name="Андрей", Age=23 },
-                 new Student {Name="Сергей", Age=27 },
-                 new Student {Name="Дмитрий", Age=29 }
-            };
+                Console.WriteLine(grouping.Key + ":");
 
-            // найдем возраст самого старого студента ( 29 )
-            var oldest = students.Max(s => s.Age);
+                // внутри каждой группы пробежимся по элементам
+                foreach (var car in grouping)
+                    Console.WriteLine(car.Manufacturer);
 
-            // самого молодого ( 23 )
-            var youngest = students.Min(s => s.Age);
+                Console.WriteLine();
+            }
 
-            //  и средний возраст ( 26,3 )
-            var average = students.Average(s => s.Age);
+             //Вывод:
+
+            //JP:
+            //    Suzuki
+            //    Toyota
+            //Honda
+
+            //    DE:
+            //    Opel
+
+            //RUS:
+            //    Kamaz
+            //    Lada
+
+            Результатом оператора group является выборка, которая состоит из групп. 
+
+            Каждая группа представляет объект IGrouping<string, Car>, где string — тип ключа, а параметр Car — тип сгруппированных объектов.
+            Ключ каждой группы доступен через свойство Key.
+
+            Через метод расширения тот же результат достигается в одну строчку: 
+
+            // Группировка по стране - производителю ( через метод - расширение)
+            var carsByCountry = cars.GroupBy(car => car.CountryCode);
+
+            При группировке мы можем использовать уже известную вам проекцию для создания объекта нового типа: 
+
+            var carsByCountry = cars
+                .GroupBy(car => car.CountryCode) // группируем по стране-производителю
+                .Select(group => new
+                { //  создаем новую сущность анонимного типа
+                  Name = group.Key,
+                  Amount = group.Count()
+                });
+
+            И даже осуществлять вложенные запросы, используя ключевое слово into.
+
+            var carsByCountry2 = from car in cars
+                                 group car by car.CountryCode into grouping // выборка в локальную переменную для вложенного запроса
+                                 select new
+                                 {
+                                     Name = grouping.Key,
+                                     Count = grouping.Count(),
+                                     Cars = from p in grouping select p //  выполним подзапрос, чтобы заполнить список машин внутри нашего нового типа
+                                 };
+            // Выведем результат
+            foreach (var group in carsByCountry2)
+            {
+            // Название группы и количество элементов
+                 Console.WriteLine($"{group.Name} : {group.Count} авто");
+  
+                 foreach(Car car in group.Cars)
+                 Console.WriteLine(car.Manufacturer);
+  
+                Console.WriteLine();
+            }
+
+            Вывод:
+            JP : 3 авто
+            Suzuki
+            Toyota
+            Honda
+
+            DE : 1 авто
+            Opel
+
+            RUS : 2 авто
+            Kamaz
+            Lada
+
+            Аналогичный запрос с помощью метода расширения, как всегда, выглядит менее громоздким: 
+
+            var carsByCountry2 = cars
+                .GroupBy(car => car.CountryCode)
+                 .Select(g => new
+                 {
+                    Name = g.Key,
+                    Count = g.Count(),
+                    Cars = g.Select(c =>c)
+                });
 
             */
         }
-
-        // Класс Student, который нужно добавить
-        class Student
+        public class Car
         {
-            public string Name { get; set; }
-            public int Age { get; set; }
+            public string Manufacturer { get; set; }
+            public string CountryCode { get; set; }
+
+            public Car(string manufacturer, string countryCode)
+            {
+                Manufacturer = manufacturer;
+                CountryCode = countryCode;
+            }
         }
     }    
 }
 
 /*
-Задание 15.2.1
-Факториал натурального числа n — это произведение всех натуральных целых чисел от 1 до n включительно
+Задание 15.3.1
 
-Шаблон функции факториала дан ниже:
+Для чего служит ключевое слово into, и где его можно использовать?
 
-static long Factorial(int number)
-{
-   // Ваш код здесь
-  
-   long result = //
-   return result;
-}
+можно использовать в любом месте программы, служит для промежуточной выборки объектов в переменную
+можно использовать в методах расширения и выражениях LINQ, служит для промежуточной выборки значений запроса.
+для промежуточной выборки и подзапросов, используется только в LINQ-выражениях                                  X
+нигде в C# нельзя использовать, а вообще это что-то из SQL
 
-Допишите функцию, используя знания LINQ, полученные в этом юните.
+Задание 15.3.2
+Что мы получаем на выходе после отработки метода GroupBy()?
 
-static long Factorial(int number)
-{
-   // Коллекция для хранения чисел
-   var numbers = new List<int>();
-  
-   // Добавляем все числа от 1 до n в коллекцию
-   for (int i = 1; i <= number; i++)
-       numbers.Add(i);
- 
-   // Выполняем агрегацию
-   return numbers.Aggregate((x, y) => x * y);
-}
+коллекцию такого же типа, но со сгруппированными вместе элементами
+коллекцию групп — новых объектов, внутри которых, в свою очередь, лежат наши элементы
+метод GroupBy() ничего не возвращает, он только изменяет текущую коллекцию                  X
+нет верного ответа
+
+Ответ: мы получим объект типа IGrouping <TKey, TValue>, где ключом будет элемент, по которому группируем.
 
 
-Задание 15.2.2
+Задание 15.3.3
 Дан список контактов:
 
-var contacts = new List<Contact>()
-{
-   new Contact() { Name = "Андрей", Phone = 79994500508 },
-   new Contact() { Name = "Сергей", Phone = 799990455 },
-   new Contact() { Name = "Иван", Phone = 79999675334 },
-   new Contact() { Name = "Игорь", Phone = 8884994 },
-   new Contact() { Name = "Анна", Phone = 665565656 },
-   new Contact() { Name = "Василий", Phone = 3434 }
-};
-
-Посчитайте, у скольких из них неверные номера телефонов (верный телефон содержит 11 цифр и начинается с семёрки).
-
-Ответ:
-
-var invalidContacts =
-   ( from contact in contacts // пробегаемся по контактам
-       let phoneString = contact.Phone.ToString() // сохраняем в промежуточную переменную строку номера телефона
-       where !phoneString.StartsWith('7') || phoneString.Length != 11 // выполняем выборку по условиям
-       select contact) // добавляем объект в выборку
-   .Count(); // считаем количество объектов в выборке
-
-
-Задание 15.2.3
-Напишите метод, возвращающий среднее арифметическое числовых объектов коллекции.
-
-Шаблон метода дан ниже:
-
-static double Average(int[] numbers)
-{
-   // Ваш код здесь
-}
-
-Ответ:
-
-static double Average(int[] numbers)
-{
-   // если делить два целых числа, которые не делятся без остатка, при делении остаток будет отброшен
-   // чтобы этого не случилось, нужно привести одно из чисел к типу double
-   return numbers.Sum() / (double)numbers.Length;
-}
-
-
-Задание 15.2.4
-Что называют агрегатными операциями?
-
-арифметические и другие операции с элементами множества или коллекции   X
-операции по преобразованию коллекции в другой тип
-разбивка групп элементов по общему принципу
-нет верного ответа
-
-Ответ: да, для них используется метод расширения Aggregate().
-
-
-Задание 15.2.5
-Чем отличается свойство Count у List<T> и метод расширения Count в LINQ?
-
-через свойство можно задать дополнительные критерии подсчёта
-в метод можно передавать лямбда-выражение                                       X
-нет принципиальных различий
-через метод невозможно выполнить обычный подсчёт без дополнительных критериев
-
-Ответ: одна из перегрузок метода Count() у List<T> позволяет передать на вход лямбда-выражение для уточнения критериев поиска.
-
-
-Задание 15.2.6
-Можно ли с помощью только метода-расширения Sum() найти сумму не всех элементов, а только тех, которые удовлетворяют определенным критериям (например, четных чисел)?
-
-можно
-нельзя                                              X
-можно только в коллекциях, хранящих простые числа
-можно в коллекциях, хранящих любые числа
-
-Ответ: чтобы это сделать, сначала отфильтруйте коллекцию с помощью where, затем выполните суммирование.
-
-
-Задание 15.2.7
-Что выведёт данный код?
-
-int [] nums = new[] { 2, 8, 11 };
-int avg = nums.Average();
-Console.WriteLine(avg);
-
-7
-2
-11
-нет верного ответа
-нет ответа              X
-
-Ответ: здесь нет верного ответа, так как на самом деле этот код не скомпилируется из-за неверно заданного типа переменной на второй строчке.
-
-
-Задание 15.2.8
-Напишите программу с бесконечным циклом, как в предыдущем юните, которая будет:
-
-ожидать ввода числа с клавиатуры (используйте Console.ReadLine());
-добавлять число в список, хранящийся в памяти;
-выводить после добавления следующую информацию: количество чисел в списке, сумму всех чисел списка, наибольшее и наименьшее числа, а также их среднее значение.
-
-class Program
-{
-   //   статическая переменная для хранения данных в памяти
-   public static List<int> Numbers = new List<int>();
-  
-   static void Main(string[] args)
-   {
-       while (true)
-       {
-           // Читаем введенный с консоли  текст
-           var input = Console.ReadLine();
-          
-           // проверяем, число ли это
-           var isInteger = Int32.TryParse(input, out int inputNum);
-          
-           // если не число - показываем ошибку
-           if (!isInteger)
-           {
-               Console.WriteLine();
-               Console.WriteLine("Вы ввели не число");
-           }
-           // если соответствует, запускаем обработчик
-           else
-           {
-               // добавляем в список
-               Numbers.Add(inputNum); 
+var phoneBook = new List<Contact>();
  
-               // выводим все критерии
-               Console.WriteLine("Число " +  input + " добавлено в список.");
-               Console.WriteLine($&quot;Всего в списке  {Numbers.Count} чисел");
-               Console.WriteLine($"Сумма:  {Numbers.Sum()}");
-               Console.WriteLine($"Наибольшее:  {Numbers.Max()}");
-               Console.WriteLine($"Наименьшее:  {Numbers.Min()}");               Console.WriteLine($"Среднее:  {Numbers.Average()}"); 
-               Console.WriteLine();
-           }
-       }
+// добавляем контакты
+phoneBook.Add(new Contact("Игорь", 79990000001, "igor@example.com"));
+phoneBook.Add(new Contact("Сергей", 79990000010, "serge@example.com"));
+phoneBook.Add(new Contact("Анатолий", 79990000011, "anatoly@example.com"));
+phoneBook.Add(new Contact("Валерий", 79990000012, "valera@example.com"));
+phoneBook.Add(new Contact("Сергей", 799900000013, "serg@gmail.com"));
+phoneBook.Add(new Contact("Иннокентий", 799900000013, "innokentii@example.com"));
+Некоторые из них имеют реальный email-адрес, а некоторые — фейковый (те, которые в домене example).
+
+Нам нужно разбить их на две группы: фейковые и реальные, и вывести результат в консоль.
+
+Решите эту задачу с помощью группировки.
+
+//  в качестве критерия группировки передаем домен адреса электронной почты
+var grouped = phoneBook.GroupBy(c => c.Email.Split("@").Last());
+ 
+// обрабатываем получившиеся группы
+foreach (var group in grouped)
+{
+   // если ключ содержит example, значит, это фейк
+   if (group.Key.Contains("example"))
+   {
+       Console.WriteLine("Фейковые адреса: ");
+ 
+       foreach (var contact in group)
+           Console.WriteLine(contact.Name + " " + contact.Email);
+      
    }
+   else
+   {
+       Console.WriteLine("Реальные адреса: ");
+       foreach (var contact in group)
+           Console.WriteLine(contact.Name + " " + contact.Email);
+   }
+ 
+   Console.WriteLine();
 }
 */
