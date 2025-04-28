@@ -53,6 +53,8 @@ namespace LINQ_PART2
 }
 
 /*
+https://learn.microsoft.com/ru-ru/dotnet/csharp/linq/standard-query-operators/grouping-data  Группирование данных (C#)
+ 
 Практика
 Есть список учеников школы с разбивкой по классам:
 
